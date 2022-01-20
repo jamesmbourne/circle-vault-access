@@ -1,0 +1,33 @@
+version: "2.1"
+orbs:
+  vault: jmingtan/hashicorp-vault@0.2.0
+jobs:
+  build:
+    docker:
+      - image: "cimg/base:stable"
+    steps:
+      - checkout
+      - run:
+          name: Install Vault
+          command: |
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get install vault
+            sudo setcap -r /usr/bin/vault
+      - run:
+          name: Install GitHub CLI
+          command: |
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh
+      - run:
+          name: Fetch secrets
+          command: |
+            ./vault-fetch.sh
+            source $BASH_ENV
+            gh repo view jamesmbourne/blog
+workflows:
+  main:
+    jobs:
+      - build
